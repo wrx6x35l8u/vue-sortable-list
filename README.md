@@ -67,7 +67,9 @@ Releasing outside the list is handled on the next press; see the open issue.
 | `items`     | `MaybeRefOrGetter<T[]>`                  | Read once at setup; `reset()` restores the initial order.   |
 | `key`       | `(item: T) => string \| number`          | Stable identity. Defaults to the item for scalar lists.    |
 | `onReorder` | `(next: T[], move: {from, to}) => void`  | Called once per committed move, never per pointer move.    |
-| `disabled`  | `MaybeRefOrGetter<boolean>`              | Blocks input without unmounting the list.                  |
+| `disabled`  | `MaybeRefOrGetter<boolean>`              | Blocks pointer and keyboard input.                         |
+| `orientation` | `'vertical' \| 'horizontal'`           | Arrow axis for keyboard moves. Defaults to `vertical`.      |
+| `announce`  | `(message: string) => void`              | Replaces the built-in live-region announcement.            |
 
 ### Returned API
 
@@ -82,19 +84,29 @@ The composable is not a component, so the demo above defines the slot shape it
 expects: a single `row` slot with `{ task, index }`. A handle can call `begin(index)`
 and stop propagation of `pointerdown` to drag from the handle only.
 
+## Keyboard
+
+Every row from `itemProps` is focusable and reorders with `ArrowUp`/`ArrowDown`
+(`ArrowLeft`/`ArrowRight` when `orientation: 'horizontal'`), `Home`, and `End`.
+Moves are announced through a shared polite live region so screen reader users hear
+the new position; pass `announce` to route it elsewhere. Use a finer row granularity
+for horizontal grids.
+
 ## Layout
 
 ```
 src/
   types.ts            row identity type
-  useSortableList.ts  order state, pointer handlers, ARIA props
+  useSortableList.ts  order state, pointer and keyboard handlers, ARIA props
+  a11y/keyboard.ts    axis arrow and Home/End reorder handler
+  a11y/announce.ts    shared polite live region
   index.ts            public entry
 ```
 
 ## Status
 
-Pointer reordering works today. Keyboard reordering is the next step; until it
-lands, rows are focusable but only pointer input moves them.
+Pointer and keyboard reordering both work today. There is no automated suite yet;
+native HTML drag events are not used, only pointer events.
 
 ## License
 
