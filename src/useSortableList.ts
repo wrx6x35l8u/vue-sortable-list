@@ -1,5 +1,8 @@
 import { computed, ref, shallowRef, toValue } from 'vue'
 import type { MaybeRefOrGetter } from 'vue'
+import { announce as announceToRegion } from './a11y/announce'
+import { createKeyboardReorder } from './a11y/keyboard'
+import type { Orientation } from './a11y/keyboard'
 import type { ItemKey } from './types'
 
 /** Positions involved in a committed reorder. */
@@ -15,8 +18,12 @@ export interface SortableListOptions<T> {
   key?: (item: T) => ItemKey
   /** Called after an order is committed. */
   onReorder?: (next: T[], move: Reorder) => void
-  /** Ignores pointer input without unmounting the list. */
+  /** Ignores pointer and keyboard input without unmounting the list. */
   disabled?: MaybeRefOrGetter<boolean>
+  /** Arrow axis for keyboard reordering. Defaults to `vertical`. */
+  orientation?: MaybeRefOrGetter<Orientation>
+  /** Replacement for the built-in live-region announcement. */
+  announce?: (message: string) => void
 }
 
 /**
@@ -50,6 +57,13 @@ export function useSortableList<T>(options: SortableListOptions<T>) {
     options.onReorder?.(next, { from, to })
     return true
   }
+
+  const onKeydown = createKeyboardReorder({
+    length: () => rows.value.length,
+    move,
+    orientation: () => (options.orientation === undefined ? 'vertical' : toValue(options.orientation)),
+    announce: options.announce ?? announceToRegion,
+  })
 
   function begin(index: number) {
     if (disabled()) return
@@ -96,6 +110,7 @@ export function useSortableList<T>(options: SortableListOptions<T>) {
         event.preventDefault()
         begin(index)
       },
+      onKeydown: (event: KeyboardEvent) => onKeydown(event, index),
       onPointerenter: () => over(index),
       onPointerup: end,
       onPointercancel: cancel,
